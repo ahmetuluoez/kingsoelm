@@ -1,3 +1,5 @@
+package calculator;
+
 public class CalculatorModel {
     private double storedValue = 0.0;
     private String pendingOperator = null;
