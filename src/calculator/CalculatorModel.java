@@ -1,17 +1,37 @@
 package calculator;
 
 public class CalculatorModel {
-    private double storedValue = 0.0;
+    private double storedValue = 0.0;    /* dieser double-wert merkt sich den wert der ersten zahl bei einer
+    anfangs als ein null deklariert, weil wir noch nichts eingegeben haben am anfang. */
     private String pendingOperator = null;
+    // und auch hier das gleiche mit dem operator.
+
+    // Wird intern für Berechnungen benutzt
     private String displayValue = "0";
+
+    // kompletter Ausdruck für die Anzeige (z. B. "32+32")
+    private String expression = "";
+
+    // Steuert, ob nach "=" ein neues Rechnen gestartet werden soll
     private boolean resetOnNextDigit = false;
     private boolean errorState = false;
+    private boolean resultShown = false;
 
-    // Fügt eine Ziffer zur aktuellen Eingabe hinzu.
+    // Ziffer anfuegen
     public void appendDigit(String digit) {
-        if (errorState) {
+        if (errorState) return;
+
+        // Wenn vorher "=" gedrueckt wurde: neue Rechnung beginnen
+        if (resultShown) {
+            displayValue = digit;
+            expression = digit;
+            storedValue = 0.0;
+            pendingOperator = null;
+            resetOnNextDigit = false;
+            resultShown = false;
             return;
         }
+
         if (resetOnNextDigit) {
             displayValue = digit;
             resetOnNextDigit = false;
@@ -20,38 +40,72 @@ public class CalculatorModel {
         } else {
             displayValue += digit;
         }
+
+        // Ausdruck erweitern
+        expression += digit;
     }
 
-    // Fügt einen Dezimalpunkt zur aktuellen Eingabe hinzu.
+    // Dezimalpunkt anfuegen
     public void appendDecimalPoint() {
-        if (errorState) {
+        if (errorState) return;
+
+        if (resultShown) {
+            displayValue = "0.";
+            expression = "0.";
+            storedValue = 0.0;
+            pendingOperator = null;
+            resetOnNextDigit = false;
+            resultShown = false;
             return;
         }
+
         if (resetOnNextDigit) {
             displayValue = "0.";
             resetOnNextDigit = false;
+            expression += "0.";
         } else if (!displayValue.contains(".")) {
             displayValue += ".";
+            expression += ".";
         }
     }
 
-    // Setzt den Operator für die nächste Berechnung.
+    // Operator setzen (+, -, ×, ÷)
     public void setOperator(String operator) {
-        if (errorState) {
-            return;
+        if (errorState) return;
+
+        if (resultShown) {
+            // Weiterrechnen mit dem letzten Ergebnis
+            storedValue = parseDisplayValue();
+            expression = displayValue + operator;
+            resultShown = false;
+        } else {
+            storedValue = parseDisplayValue();
+            if (expression.isEmpty()) {
+                expression = displayValue + operator;
+            } else {
+                char last = expression.charAt(expression.length() - 1);
+                if (last == '+' || last == '-' || last == '×' || last == '÷') {
+                    // Operator ersetzen, falls man ihn aendert
+                    expression = expression.substring(0, expression.length() - 1) + operator;
+                } else {
+                    expression += operator;
+                }
+            }
         }
-        storedValue = parseDisplayValue();
+
         pendingOperator = operator;
         resetOnNextDigit = true;
     }
 
-    // Führt die Berechnung basierend auf dem gespeicherten Operator aus.
+    // "="
     public void calculate() {
         if (errorState || pendingOperator == null || resetOnNextDigit) {
             return;
         }
+
         double currentValue = parseDisplayValue();
         double result;
+
         switch (pendingOperator) {
             case "+":
                 result = storedValue + currentValue;
@@ -72,44 +126,60 @@ public class CalculatorModel {
             default:
                 return;
         }
+
         displayValue = formatResult(result);
         storedValue = result;
         pendingOperator = null;
         resetOnNextDigit = true;
+        resultShown = true;
+
+        // Nach "=" soll nur noch das Ergebnis angezeigt werden
+        expression = displayValue;
     }
 
-    // Löscht alle gespeicherten Werte und setzt den Rechner zurück.
+    // "C"
     public void clear() {
         storedValue = 0.0;
         pendingOperator = null;
         displayValue = "0";
         resetOnNextDigit = false;
         errorState = false;
+        expression = "";
+        resultShown = false;
     }
 
-    // Gibt die aktuelle Anzeige zurück.
+    // Anzeige fuer die View
     public String getDisplayValue() {
-        return errorState ? "Error" : displayValue;
+        if (errorState) {
+            return "Error";
+        }
+
+        // Wenn ein Operator gesetzt ist und wir mitten in einer Rechnung sind:
+        // gesamten Ausdruck anzeigen (z. B. "32+32")
+        if (pendingOperator != null && !resultShown && !expression.isEmpty()) {
+            return expression;
+        }
+
+        // Sonst nur die aktuelle Zahl bzw. das Ergebnis
+        return displayValue;
     }
 
-    // Prüft, ob sich das Modell im Fehlerzustand befindet.
     public boolean isError() {
         return errorState;
     }
 
-    // Setzt das Modell in den Fehlerzustand.
     private void setErrorState() {
         errorState = true;
         displayValue = "Error";
+        expression = "Error";
         pendingOperator = null;
+        resultShown = false;
     }
 
-    // Wandelt den Anzeigestring in eine Zahl um.
     private double parseDisplayValue() {
         return Double.parseDouble(displayValue);
     }
 
-    // Formatiert das Ergebnis für die Anzeige.
     private String formatResult(double value) {
         if (Math.abs(value - Math.rint(value)) < 1e-10) {
             return String.valueOf((long) Math.rint(value));

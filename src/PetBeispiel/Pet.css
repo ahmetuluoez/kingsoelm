@@ -1,0 +1,21 @@
+#dataEntry {
+	-fx-border-insets: 5px;
+	-fx-border-color: black;
+	-fx-border-width: 2px;
+	-fx-background-color: moccasin;
+}
+
+#controlArea {
+	-fx-border-insets: 5px;
+	-fx-border-color: black;
+	-fx-border-width: 2px;
+	-fx-background-color: aquamarine;
+}
+
+#dataDisplay {
+	-fx-border-insets: 5px;
+	-fx-border-color: black;
+	-fx-border-width: 2px;
+	-fx-background-color: skyblue;
+}
+
